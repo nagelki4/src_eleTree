@@ -21,7 +21,7 @@ library(sp)
 
 #################################  Functions  ##################################################################
 # Source the functions
-source("C:/Users/nagelki-4/Dropbox/Permanent/Grad School/Code/R/Function Scripts/SMA_Eval_Functions.R")
+source("X:/nagelki4/src_functions/src_masterfunctions.R")
 
 #################################  VARIABLES  ##################################################################
 # Define variables
@@ -48,10 +48,9 @@ is.hdr <- FALSE
 landsat.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/SMA/Landsat/Mpala/"
 
 # Location and prefixes of the 2014 and 1987 imagery
-image_prefix <- "LC81680602014034LGN00"
-image_folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/SMA/Landsat/Mpala/LC81680602014034-SC20160914165712/Original"
-image87_prefix <- 
-image87_folder <- 
+image_prefix <- c("LC81680602014034LGN00", "LT51680601987056XXX01")
+image_folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/data/Landsat"
+
 
 
 # Working directory and where outputs are saved 
@@ -84,8 +83,8 @@ shape.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTre
 ###### NDVI and MSAVI2
 if(ndvi_n_msavi){
   
-  MSAVI2 <- MSAVI2_Landsat_calc(path = image_folder, prefix = image_prefix)
-  NDVI <- NDVI_Landsat_calc(path = image_folder, prefix = image_prefix)
+  MSAVI2 <- MSAVI2_Landsat_calc(path = image_folder, prefix = image_prefix[1])
+  NDVI <- NDVI_Landsat_calc(path = image_folder, prefix = image_prefix[1])
   
   # Write rasters to file
   writeRaster(NDVI, "NDVI", format = "GTiff")
@@ -99,7 +98,6 @@ if(ndvi_n_msavi){
 setwd(working.dir)
 # par(mfrow = c(1,1)) # just in case needed for changing later
 par(mar=c(1,1,2,1))
-
 
 
 #####################  SHAPEFILE & RASTERS & POINT GENERATION  ############################################
@@ -118,17 +116,16 @@ plot(ground.truth.frame)
 
 ###### LANDSAT #######
 # Plot the RGBs from 1987 and 2014
-stack.2014 <- stackLandsat(path = image_folder, prefix = image_prefix)
+stack.2014 <- stackLandsat(path = image_folder, prefix = image_prefix[1])
 cr.stack.2014 <- crop(stack.2014, extent(mpala.boundary.simple)) # take down to extent of park
 crop.stack.2014 <- mask(cr.stack.2014, mpala.boundary.simple) # clip by park boundary
-rgbLandsat(stackname = crop.stack.2014)
+rgbLandsat(stackname = crop.stack.2014, r = 5, b = 3)
 
+stack.1987 <- stackLandsat(path = image_folder, prefix = image_prefix[2])
+cr.stack.1987 <- crop(stack.1987, extent(mpala.boundary.simple)) # take down to extent of park
+crop.stack.1987 <- mask(cr.stack.1987, mpala.boundary.simple) # clip by park boundary
+rgbLandsat(stackname = crop.stack.1987, r = 3, b = 1)
 
-red87 <- raster(paste0(landsat.folder, "mpalared_87")) # this can now be rewritten to the above for 87
-green87 <- raster(paste0(landsat.folder, "mpalagreen_87"))
-blue87 <- raster(paste0(landsat.folder, "mpalablue_87"))
-stack.87 <- stack(red87, green87, blue87)
-plotRGB(stack.87, scale = 255, axes = TRUE, main = "1987")
 
 
 
@@ -137,37 +134,17 @@ plotRGB(stack.87, scale = 255, axes = TRUE, main = "1987")
 mpala_cfmask <- raster("mpala_cfmask")
 plot(mpala_cfmask, axes=F,box = F, legend = FALSE) # 0 is cloud free, 1 == cloud
 
-
-## Read in and clip the Laikipia files for each year
-Laik.14.tr <- raster(paste0(SMA.folder, SMA.14), band = tr.bandnum.14)
-Laik.14.so <- raster(paste0(SMA.folder, SMA.14), band = gr.bandnum.14)
-Laik.14.gr <- raster(paste0(SMA.folder, SMA.14), band = so.bandnum.14)
-Laik.87.tr <- raster(paste0(SMA.folder, SMA.87), band = tr.bandnum.87) 
-Laik.87.gr <- raster(paste0(SMA.folder, SMA.87), band = gr.bandnum.87)
-Laik.87.so <- raster(paste0(SMA.folder, SMA.87), band = so.bandnum.87)
-
-
-
-# Crop them all down to the Mpala extent
-laik.14.tr <- crop(Laik.14.tr, extent(mpala.boundary.simple))
-laik.14.gr <- crop(Laik.14.gr, extent(mpala.boundary.simple))
-laik.14.so <- crop(Laik.14.so, extent(mpala.boundary.simple))
-laik.87.tr <- crop(Laik.87.tr, extent(mpala.boundary.simple))
-laik.87.gr <- crop(Laik.87.gr, extent(mpala.boundary.simple))
-laik.87.so <- crop(Laik.87.so, extent(mpala.boundary.simple))
-
-
-# Clip to the Mpala boundary
-# 2014 
-TREE <- mask(laik.14.tr, mpala.boundary.simple)
-GRASS <- mask(laik.14.gr, mpala.boundary.simple)
-SOIL <- mask(laik.14.so, mpala.boundary.simple)
+# Load and clip the SMA results to the park boundary
+# 2014
+TREE <- clipTIF(path = SMA.folder, tifname = SMA.14, bandnum = tr.bandnum.14, clipboundary = mpala.boundary.simple)
+GRASS <- clipTIF(path = SMA.folder, tifname = SMA.14, bandnum = gr.bandnum.14, clipboundary = mpala.boundary.simple)
+SOIL <- clipTIF(path = SMA.folder, tifname = SMA.14, bandnum = so.bandnum.14, clipboundary = mpala.boundary.simple)
 # 1987
-TREE.87 <- mask(laik.87.tr, mpala.boundary.simple)
-GRASS.87 <- mask(laik.87.gr, mpala.boundary.simple)
-SOIL.87 <- mask(laik.87.so, mpala.boundary.simple)
+TREE.87 <- clipTIF(path = SMA.folder, tifname = SMA.87, bandnum = tr.bandnum.87, clipboundary = mpala.boundary.simple)
+GRASS.87 <- clipTIF(path = SMA.folder, tifname = SMA.87, bandnum = gr.bandnum.87, clipboundary = mpala.boundary.simple)
+SOIL.87 <- clipTIF(path = SMA.folder, tifname = SMA.87, bandnum = so.bandnum.87, clipboundary = mpala.boundary.simple)
 
-
+# Rescale values if HDR file
 if(is.hdr){
   tr.max <- max(TREE[!is.na(TREE)])
   tr.min <- min(TREE[!is.na(TREE)])
@@ -186,6 +163,7 @@ if(is.hdr){
   # SOIL <- (SOIL + abs(tr.min))/(tr.max - tr.min)*255
 }
 
+# Plot as RGB
 plot(TREE, axes=F,box = F, main = "2014 Trees SMA")
 plot(GRASS, axes=F,box = F, main = "2014 Grass SMA")
 plot(SOIL, axes=F,box = F, main = "2014 Soil SMA")
@@ -213,7 +191,7 @@ sample.raster[!is.na(sample.raster)] <- 1
 plot(sample.raster, axes=F,box = F)
 
 # Clip all the other rasters (this doesn't need to be done if you are sampling the entire area and can just be commented out if so)
-# This is done so all the pixel numbers are the same, which is needed for the point sampling to work
+# This is done so all the pixel numbers overlap, which is needed for the point indexing to work
 TREE <- mask(TREE, ground.truth.frame)
 GRASS <- mask(GRASS, ground.truth.frame)
 SOIL <- mask(SOIL, ground.truth.frame)
@@ -275,6 +253,16 @@ points(trial.points, pch = 0, cex = .3)
 
 
 ###########  CLASSIFYING GOOGLE PIXELS  #########################################################
+
+## WRITE THE CODE TO FIRST FILL THE P.* values, then the SMA, then the nine.cell avg, then NDVI MSAVI and VCF as desired.
+
+## Should all be able to go into a general function. Separating them makes it easy to just add the SMA
+
+## So when looking at new SMA results, should just run the addSMA function, then three 1:1 plot functions (tree, grass, soil)
+
+
+
+
 
 ######## 1x1 Classification #######
 if(one_by_one){
@@ -553,8 +541,6 @@ if(one_by_one){
 ######## 3x3 Classification #######
 
 # for the landsat cells, get the row and column of the sample point and define the 8 around it as 1 away from that point
-# for the google cells, will have to construct the different indents for each surrounding 30m box
-
 
 
 
@@ -600,28 +586,9 @@ if(three_by_three){
     
     # GET THE IMAGE FROM GOOGLE!! (If not already done)
     if(get.Google.image){
-      # Extract that pixel
-      pxl <- rasterFromCells(sample.raster, cell.numbers[t])
-      # plot(pxl)
-      
-      ### Get the corner coordinates
-      # List the 2 opposite corners
-      c1 <- cbind(xmin(pxl), ymin(pxl))
-      c2 <- cbind(xmax(pxl), ymax(pxl))
-      cc <- rbind(c1, c2)
-      # Find projection and make spatial points
-      prj <- crs(pxl)
-      utmcoor2<-SpatialPoints(cc, proj4string=prj)
-      
-      # Convert to lat long
-      latlong <- spTransform(utmcoor2, CRS("+proj=longlat"))
-      # Make extent objects for plugging into google map function
-      ext2 <- extent(latlong)
-      x.range <- c(ext2@xmin, ext2@xmax)
-      y.range <- c(ext2@ymin, ext2@ymax)
-      
-      # DOWNLOAD THE IMAGE
-      j <- GetMap.bbox(x.range, y.range, destfile = image.name, maptype = "satellite", zoom = 19)
+      # Written by Ryan. Function in src_masterfunctions.R
+      j <- getGoogleimage(rastername = sample.raster, ras.pixel.num = cell.numbers[t], 
+                     destfilename = image.name, typeofmap = "satellite", zoomlevel = 19)
     }
     
     # if(classify.google.images){
@@ -779,7 +746,7 @@ if(three_by_three){
     master.df$pxl.num[t] <- cell.numbers[t]
     master.df$p.water[t] <- p.water
     master.df$p.tree[t] <- p.tree
-    master.df$p.soil[t] <- p.soil  # make a seperate table for the 1-9 values. Only record the average here
+    master.df$p.soil[t] <- p.soil  # make a seperate table for the 1-9 values. This is only the middle pixel
     master.df$p.grass[t] <- p.grass 
     master.df$maj.truth[t] <- maj.cov 
     master.df$SMA.tree[t] <- sma.tree 
@@ -1101,77 +1068,7 @@ abline(0,1) # Add the 1:1 line
 
 
 
-if(ndvi_n_msavi){
-#### Plot 1:1
-# NDVI - TREE
-# Calculate Stats
-correl <- cor(master.df$p.tree, master.df$NDVI)
-covar <- cov(master.df$p.tree, master.df$NDVI)
-md <- lm(master.df$NDVI ~ master.df$p.tree)
 
-# Plot
-plot(master.df$p.tree, master.df$NDVI, main = paste0("Observed Tree Cover vs. NDVI \nCor = ", round(correl, 2)), xlab = "Observed Tree Cover Fraction", ylab = "NDVI", xlim = c(0,1), ylim = c(0,1))
-abline(md) # Add the 1:1 line
-summary(md)
-
-# MSAVI2 - TREE
-# Calculate Stats
-correl <- cor(master.df$p.tree, master.df$MSAVI2)
-covar <- cov(master.df$p.tree, master.df$MSAVI2)
-md <- lm(master.df$MSAVI2 ~ master.df$p.tree)
-# Plot
-plot(master.df$p.tree, master.df$MSAVI2, main = paste0("Observed Tree Cover vs. MSAVI2 \nCor = ", round(correl, 2)), xlab = "Observed Tree Cover Fraction", ylab = "MSAVI2", xlim = c(0,1), ylim = c(0,1))
-abline(md) # Add the 1:1 line
-summary(md)
-
-
-
-# NDVI - GRASS
-# Calculate Stats
-correl <- cor(master.df$p.grass, master.df$NDVI)
-covar <- cov(master.df$p.grass, master.df$NDVI)
-md <- lm(master.df$NDVI ~ master.df$p.grass)
-
-# Plot
-plot(master.df$p.grass, master.df$NDVI, main = paste0("Observed grass Cover vs. NDVI \nCor = ", round(correl, 2)), xlab = "Observed grass Cover Fraction", ylab = "NDVI", xlim = c(0,1), ylim = c(0,1))
-abline(md) # Add the 1:1 line
-summary(md)
-
-# MSAVI2 - GRASS
-# Calculate Stats
-correl <- cor(master.df$p.grass, master.df$MSAVI2)
-covar <- cov(master.df$p.grass, master.df$MSAVI2)
-md <- lm(master.df$MSAVI2 ~ master.df$p.grass)
-# Plot
-plot(master.df$p.grass, master.df$MSAVI2, main = paste0("Observed grass Cover vs. MSAVI2 \nCor = ", round(correl, 2)), xlab = "Observed grass Cover Fraction", ylab = "MSAVI2", xlim = c(0,1), ylim = c(0,1))
-abline(md) # Add the 1:1 line
-summary(md)
-
-
-
-
-# NDVI - Soil
-# Calculate Stats
-correl <- cor(master.df$p.soil, master.df$NDVI)
-covar <- cov(master.df$p.soil, master.df$NDVI)
-md <- lm(master.df$NDVI ~ master.df$p.soil)
-
-# Plot
-plot(master.df$p.soil, master.df$NDVI, main = paste0("Observed soil Cover vs. NDVI \nCor = ", round(correl, 2)), xlab = "Observed soil Cover Fraction", ylab = "NDVI", xlim = c(0,1), ylim = c(0,1))
-abline(md) # Add the 1:1 line
-summary(md)
-
-# MSAVI2 - Soil
-# Calculate Stats
-correl <- cor(master.df$p.soil, master.df$MSAVI2)
-covar <- cov(master.df$p.soil, master.df$MSAVI2)
-md <- lm(master.df$MSAVI2 ~ master.df$p.soil)
-# Plot
-plot(master.df$p.soil, master.df$MSAVI2, main = paste0("Observed soil Cover vs. MSAVI2 \nCor = ", round(correl, 2)), xlab = "Observed soil Cover Fraction", ylab = "MSAVI2", xlim = c(0,1), ylim = c(0,1))
-abline(md) # Add the 1:1 line
-summary(md)
-
-}
 ####################  TRANSITION MATRIX  ################################################################
 
 # Calcs the dominant cover in these, too, because it goes through all the pixels
