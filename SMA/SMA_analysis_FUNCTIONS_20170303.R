@@ -24,24 +24,31 @@ library(sp)
 source("X:/nagelki4/src_functions/src_masterfunctions.R")
 
 #################################  VARIABLES  ##################################################################
+
+## MASTER SWITCH for SMA checking
+SMA.check.mode <- FALSE
+
 # Define variables
 sample.size <- 500 # how many points should go into the ground truth? 
-water.frac.thresh <- 0.05 # When water occupies what fraction of the scene will it be included in the classification? This was done because trees are sometimes classified as water, so only class water when it's fairly certain it's in the image. 
 get.Google.image <- FALSE  # Should the Google image be downloaded? (Set to FALSE if they're already downloaded)
-Google.image.dim.final <- 30 # in meters, the resolution of the final Google image (after clipping) (This can be made into list of the different resolutions to analyze at. So could do accuracy assessment for 30 meters and then 120 as well, to see how compare)
-save.rgb.pixel <- F  # Should the clipped Google image be saved?
-save.class.pixel <- FALSE  # Save the classified Google image?
 classify.water <- FALSE  # Should water be included as a condidate class?
-save.confusion.matrix <- FALSE  # Save the confusion matrix?
-save.transition.matrix <- FALSE  # Save the transition matrix?
-check.ground.truth <- FALSE  # If true, this will run the ground truth hand classification code. Should always be FALSE
 classify.google.and.record <- FALSE # should the Google images be classified and the cover recorded? 
 ndvi_n_msavi <- FALSE # calc NDVI and MSAVI2?
 vcf_landsat <- FALSE  # load the 2015 VCF?
-three_by_three <- TRUE # should the area be 3x3 landsat pixels for classification?
-one_by_one <- FALSE  # sets classified area to a single cell of size Google.image.dim.final (30m)
 plot.9by9 <- FALSE  # Should an image with the 9x9 cells be created for each rep?
 is.hdr <- FALSE
+save.confusion.matrix <- FALSE  # Save the confusion matrix?
+save.transition.matrix <- FALSE  # Save the transition matrix?
+run.confuse.matrix <- FALSE
+
+# Turn off the unnecessary parts of the code if just checking SMA
+if(SMA.check.mode == TRUE){
+  get.Google.image <- FALSE
+  classify.google.and.record <- FALSE
+  vcf_landsat <- FALSE
+  ndvi_n_msavi <- FALSE
+  run.confuse.matrix <- FALSE
+}
 
 
 # Landsat Folder
@@ -89,90 +96,91 @@ setwd(working.dir)
 par(mar=c(1,1,2,1))
 
 
-#####################  SHAPEFILE & RASTERS & POINT GENERATION  ############################################
-
-###### Read in Landsat and shapefiles
-# Landsat
-stack.2014 <- stackLandsat(path = image_folder, prefix = image_prefix[1])
-stack.1987 <- stackLandsat(path = image_folder, prefix = image_prefix[2])
-# Shapefiles
-mpala.boundaries <- readOGR(shape.folder, "MpalaImageDelineated")
-mpala.boundary.simple <- readOGR(shape.folder, "MpalaShapeforGoog")
-# Convert Mpala shapefile to lat long, which everything else is in
-mpala.boundaries <- spTransform(mpala.boundaries, crs(stack.2014))
-mpala.boundary.simple <- spTransform(mpala.boundary.simple, crs(stack.2014))
-plot(mpala.boundary.simple)
-plot(mpala.boundaries, add = TRUE)
-# Select the third one, since that is the one I have a rule set for right now
-ground.truth.frame <- as.SpatialPolygons.PolygonsList(mpala.boundaries@polygons[3], crs(mpala.boundaries))
-plot(ground.truth.frame)
-
-# Plot the RGBs from 1987 and 2014
-cr.stack.2014 <- crop(stack.2014, extent(mpala.boundary.simple)) # take down to extent of park
-crop.stack.2014 <- mask(cr.stack.2014, mpala.boundary.simple) # clip by park boundary
-rgbLandsat(stackname = crop.stack.2014, r = 5, b = 3)
-
-cr.stack.1987 <- crop(stack.1987, extent(mpala.boundary.simple)) # take down to extent of park
-crop.stack.1987 <- mask(cr.stack.1987, mpala.boundary.simple) # clip by park boundary
-rgbLandsat(stackname = crop.stack.1987, r = 3, b = 1)
-
-
-# Make blank background using Landsat cfmask
-mpala_cfmask <- crop.stack.2014[[1]]
-plot(mpala_cfmask, axes=F,box = F, legend = FALSE) # 0 is cloud free, 1 == cloud
-
-
-###### POINT GENERATION ###############################
-# Crop the area that will be used for random point generation. This could be done several
-# times if using more polygons in the future.
-
-# Clip out the raster and set the values to 1
-plot(TREE, axes=F,box = F)
-plot(ground.truth.frame, axes=F,box = F, add = TRUE)
-sample.raster <- mask(TREE, ground.truth.frame) 
-sample.raster[!is.na(sample.raster)] <- 1
-plot(sample.raster, axes=F,box = F)
-
-
-
-
-######  GENERATE LIST OF POINTS  ############################################################################
-# Create list of cells in Mpala for sampling
-# First, how many cells have a value?
-cell.num <- length(na.omit(sample.raster[])) # this used to be na.omit(mpala[])
-
-# Use that to assign new values to the cells (numbering them)
-cell.val <- cell.num # this is easier to understand
-sample.raster[!is.na(sample.raster)] <- 1:cell.val
-plot(sample.raster, axes=F,box = F)
-
-# Randomly select cells from the raster (the cells are represented as a list of numbers at this point)
-set.seed(1) # set this for now. Can change later
-sample.cells <- sample(1:cell.val, sample.size)
-
-######  PLOT THE POINTS  #########
-### Plot the cells that were chosen 
-# Get the cell numbers
-cell.numbers <- c()
-for(i in sample.cells){
-  sing.cell <- Which(sample.raster == i, cells= TRUE)
-  cell.numbers <- c(cell.numbers, sing.cell)
+if(SMA.check.mode == FALSE){
+  #####################  SHAPEFILE & RASTERS & POINT GENERATION  ############################################
+  
+  ###### Read in Landsat and shapefiles
+  # Landsat
+  stack.2014 <- stackLandsat(path = image_folder, prefix = image_prefix[1])
+  stack.1987 <- stackLandsat(path = image_folder, prefix = image_prefix[2])
+  # Shapefiles
+  mpala.boundaries <- readOGR(shape.folder, "MpalaImageDelineated")
+  mpala.boundary.simple <- readOGR(shape.folder, "MpalaShapeforGoog")
+  # Convert Mpala shapefile to lat long, which everything else is in
+  mpala.boundaries <- spTransform(mpala.boundaries, crs(stack.2014))
+  mpala.boundary.simple <- spTransform(mpala.boundary.simple, crs(stack.2014))
+  plot(mpala.boundary.simple)
+  plot(mpala.boundaries, add = TRUE)
+  # Select the third one, since that is the one I have a rule set for right now
+  ground.truth.frame <- as.SpatialPolygons.PolygonsList(mpala.boundaries@polygons[3], crs(mpala.boundaries))
+  plot(ground.truth.frame)
+  
+  # Plot the RGBs from 1987 and 2014
+  cr.stack.2014 <- crop(stack.2014, extent(mpala.boundary.simple)) # take down to extent of park
+  crop.stack.2014 <- mask(cr.stack.2014, mpala.boundary.simple) # clip by park boundary
+  rgbLandsat(stackname = crop.stack.2014, r = 5, b = 3)
+  
+  cr.stack.1987 <- crop(stack.1987, extent(mpala.boundary.simple)) # take down to extent of park
+  crop.stack.1987 <- mask(cr.stack.1987, mpala.boundary.simple) # clip by park boundary
+  rgbLandsat(stackname = crop.stack.1987, r = 3, b = 1)
+  
+  
+  # Make blank background using Landsat cfmask
+  mpala_cfmask <- crop.stack.2014[[1]]
+  plot(mpala_cfmask, axes=F,box = F, legend = FALSE) # 0 is cloud free, 1 == cloud
+  
+  
+  ###### POINT GENERATION ###############################
+  # Crop the area that will be used for random point generation. This could be done several
+  # times if using more polygons in the future.
+  
+  # Clip out the raster and set the values to 1
+  plot(TREE, axes=F,box = F)
+  plot(ground.truth.frame, axes=F,box = F, add = TRUE)
+  sample.raster <- mask(TREE, ground.truth.frame) 
+  sample.raster[!is.na(sample.raster)] <- 1
+  plot(sample.raster, axes=F,box = F)
+  
+  
+  
+  
+  ######  GENERATE LIST OF POINTS  ############################################################################
+  # Create list of cells in Mpala for sampling
+  # First, how many cells have a value?
+  cell.num <- length(na.omit(sample.raster[])) # this used to be na.omit(mpala[])
+  
+  # Use that to assign new values to the cells (numbering them)
+  cell.val <- cell.num # this is easier to understand
+  sample.raster[!is.na(sample.raster)] <- 1:cell.val
+  plot(sample.raster, axes=F,box = F)
+  
+  # Randomly select cells from the raster (the cells are represented as a list of numbers at this point)
+  set.seed(1) # set this for now. Can change later
+  sample.cells <- sample(1:cell.val, sample.size)
+  
+  ######  PLOT THE POINTS  #########
+  ### Plot the cells that were chosen 
+  # Get the cell numbers
+  cell.numbers <- c()
+  for(i in sample.cells){
+    sing.cell <- Which(sample.raster == i, cells= TRUE)
+    cell.numbers <- c(cell.numbers, sing.cell)
+  }
+  
+  # Assign the sample points 1000000 and then set rest to NA
+  trial <- sample.raster
+  trial[cell.numbers] <- 1000000
+  trial[trial < 1000000] <- NA
+  
+  # Convert cells to points and add them to the plot
+  trial.points <- rasterToPoints(trial)
+  par(mar=c(1,1,2,1)) 
+  plot(mpala_cfmask, axes=F,box = F, legend = FALSE, breaks = c(0,1))
+  plot(ground.truth.frame, add = TRUE)
+  new <- sample(1:500, 50) # get what is likely the hand calibrated points, though this wasn't varified (meant for illustration, not analysis)
+  hand.points <- trial.points[new, ]
+  points(trial.points, pch = 0, cex = .3)
 }
-
-# Assign the sample points 1000000 and then set rest to NA
-trial <- sample.raster
-trial[cell.numbers] <- 1000000
-trial[trial < 1000000] <- NA
-
-# Convert cells to points and add them to the plot
-trial.points <- rasterToPoints(trial)
-par(mar=c(1,1,2,1)) 
-plot(mpala_cfmask, axes=F,box = F, legend = FALSE, breaks = c(0,1))
-plot(ground.truth.frame, add = TRUE)
-new <- sample(1:500, 50) # get what is likely the hand calibrated points, though this wasn't varified (meant for illustration, not analysis)
-hand.points <- trial.points[new, ]
-points(trial.points, pch = 0, cex = .3)
-
 
 
 #########  GET GOOGLE IMAGERY  #####################################################################
@@ -196,7 +204,7 @@ if(get.Google.image){
 
 
 #######  CLASSIFY and RECORD GOOGLE COVER DATA  #################################################
-master.df.csv.name <- "./default_master"
+master.df.csv.name <- "./default_master.csv"
 
 if(classify.google.and.record){
   # This will bring in the images, crop them, classify, and record to the master.df and the nine.cell.df (then saves the nine.cell)
@@ -204,23 +212,12 @@ if(classify.google.and.record){
   master.df <- CreateCoverTable(samplesize = sample.size, googleimagefolder = google.image.folder, 
                                 cellnumbers = cell.numbers, save.pixel.rgb = FALSE, 
                                 ninepixCSVname = "./nine_pix_df_20170305.csv", masterdfname = master.df.csv.name)
+  # The default of TGSW function (within CreateCoverTable) is not to save the classified image
 }
 
 
 
-
-## So when looking at new SMA results, should just run the addSMA function, then three 1:1 plot functions (tree, grass, soil)
-
-
-
-
-
-############  INPUT SMA, NDVI, MSAVI and VCF  ###################################################
-
-
-
-########  SMA  ###########################
-
+########  SMA  ##################################################################################
 # Read in the master.df
 master.df <- read.csv(master.df.csv.name)
 
@@ -231,10 +228,7 @@ master.df <- addSMA(SMAfolder = SMA.folder, tiffname = SMA.14, treeband = tr.ban
 
 
 
-
-
-
-######## NDVI and MSAVI2  ###############
+######## NDVI and MSAVI2  #######################################################################
 if(ndvi_n_msavi){
   # Calculate the indices
   MSAVI2 <- MSAVI2_Landsat_calc(path = image_folder, prefix = image_prefix[1]) # this could be made FASTER if both didn't have to mask
@@ -249,6 +243,9 @@ if(ndvi_n_msavi){
   writeRaster(MSAVI2, "MSAVI2", format = "GTiff")
   
   # Add the data to master.df
+  # Function in src_masterfunctions.R
+  master.df <- addData(tiffname = ndvi, df = master.df, colname = "NDVI") 
+  master.df <- addData(tiffname = msavi, df = master.df, colname = "MSAVI2")
 }
 
 ########  VCF  ##########################
@@ -256,108 +253,28 @@ if(vcf_landsat){
   vcf.file <- raster(vcf)
   vcf.file <- crop(vcf.file, extent(mpala.boundary.simple))
   vcf.tree <- mask(vcf.file, ground.truth.frame)
+  vcf.tree <- vcf.tree/100
   # Add the data to master.df
+  # Function in src_masterfunctions.R
+  master.df <- addData(tiffname = vcf.tree, df = master.df, colname = "VCF")
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-   
-
-
-
-
-if(ndvi_n_msavi){
-  master.df$NDVI[t] <- ndvi[cell.numbers[t]]
-  master.df$MSAVI2[t] <- msavi[cell.numbers[t]]
+if(SMA.check.mode == FALSE){
+  write.csv(master.df, "master.df_FULL_20170305.csv")
 }
 
-
-write.csv(master.df, "master.df_20170116.csv")
-
-
+## So when looking at new SMA results, should just run the addSMA function, then three 1:1 plot functions (tree, grass, soil)
+# Write in a variable at the top as Checking.SMA.mode. When it is true, it sets all the conditions for doing stuff to false
 
 
 ###########  CONFUSION MATRIX ############################################################
 
-# (This will need to be modified to include water. Should be done just based on column names)
-# Don't hard code the numbers, just the names. If water, then 6 names, if not, then 5.
-# Just that information should be enough for the rest to run.
-# That is started with the if statement below, but not continued through
-
-
-if(classify.water){
-  c.name <- c("Trees", "Grass", "Soil", "Water", "Total", "Percent Correct")
-}else{c.name <- c("Trees", "Grass", "Soil", "Total", "Percent Correct")}
-      
-# make the table
-c.mtx <- matrix(0, nrow = 5, ncol = 5) # ncol should be length(c.name)
-c.mtx.df <- as.data.frame(c.mtx)
-colnames(c.mtx.df) <- c.name
-rownames(c.mtx.df) <- c.name
-
-# n <- 1
-for(n in 1:sample.size){
-  truth <- master.df$maj.truth[n]
-  pred <- master.df$maj.SMA[n]
-  
-  # Assign the coordinates for plugging into table
-  if(truth == "Trees"){
-    truth.cor <- 1
-  } else if (truth == "Grass"){
-    truth.cor <- 2
-  } else if (truth == "Soil"){
-    truth.cor <- 3
-  }
-  
-  if(pred == "Trees"){
-    pred.cor <- 1
-  } else if (pred == "Grass"){
-    pred.cor <- 2
-  } else if (pred == "Soil"){
-    pred.cor <- 3
-  }
-  
-  # Now go the position in the table and add 1
-  c.mtx.df[truth.cor, pred.cor] <- c.mtx.df[truth.cor, pred.cor] + 1
+if(run.confuse.matrix == TRUE){
+  # Function in src_masterfunctions.R
+  confusion.mtx <- confusionMatrix(df = master.df) # can change settings to save the mtx and whether water is included
 }
 
-# Now sum the columns and calc the percent correct
-# First define how many columns/rows have numbers to add
-summing.values <- ncol(c.mtx.df) - 2
-tot.rowcol <- ncol(c.mtx.df) - 1
-per.rowcol <- ncol(c.mtx.df)
-tot.correct <- 0 # set up total correct variable to be adding values to from the diagonal 
-
-# Now calculate them
-for(i in 1:summing.values){
-  c.mtx.df[i, tot.rowcol] <- sum(c.mtx.df[i, 1:summing.values]) # does the Total column
-  c.mtx.df[i, per.rowcol] <- c.mtx.df[i, i] / c.mtx.df[i, tot.rowcol] # does the percent column
-  c.mtx.df[tot.rowcol, i] <- sum(c.mtx.df[1:summing.values, i]) # does the Total row
-  c.mtx.df[per.rowcol, i] <- c.mtx.df[i, i] / c.mtx.df[tot.rowcol, i] # does the percent column
-  
-  tot.correct <- tot.correct + c.mtx.df[i, i]
-  # Fill in the total/total cell and the overall percent correct 
-  if(i == summing.values){
-    # Fill in the Total/Total combo cell
-    c.mtx.df[tot.rowcol, tot.rowcol] <- sum(c.mtx.df[1:summing.values, tot.rowcol])
-    # Last, fill in the total percent correct (lower right corner cell)
-    c.mtx.df[per.rowcol, per.rowcol] <- tot.correct / c.mtx.df[tot.rowcol, tot.rowcol]
-  }
-}
-
-if(save.confusion.matrix){
-  write.csv(c.mtx.df, "accuracy_matrix.csv")
-} 
 
 ####################  CREATE 1:1 PLOT  #############################################################
 
