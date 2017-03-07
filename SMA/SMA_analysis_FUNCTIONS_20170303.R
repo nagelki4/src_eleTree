@@ -23,54 +23,16 @@ library(sp)
 # Source the functions
 source("X:/nagelki4/src_functions/src_masterfunctions.R")
 
-#################################  VARIABLES  ##################################################################
+#################################  SMA  ##################################################################
 
 ## MASTER SWITCH for SMA checking
-SMA.check.mode <- FALSE
-
-# Define variables
-sample.size <- 500 # how many points should go into the ground truth? 
-get.Google.image <- FALSE  # Should the Google image be downloaded? (Set to FALSE if they're already downloaded)
-classify.water <- FALSE  # Should water be included as a condidate class?
-classify.google.and.record <- FALSE # should the Google images be classified and the cover recorded? 
-ndvi_n_msavi <- FALSE # calc NDVI and MSAVI2?
-vcf_landsat <- FALSE  # load the 2015 VCF?
-plot.9by9 <- FALSE  # Should an image with the 9x9 cells be created for each rep?
-is.hdr <- FALSE
-save.confusion.matrix <- FALSE  # Save the confusion matrix?
-save.transition.matrix <- FALSE  # Save the transition matrix?
-run.confuse.matrix <- FALSE
-
-# Turn off the unnecessary parts of the code if just checking SMA
-if(SMA.check.mode == TRUE){
-  get.Google.image <- FALSE
-  classify.google.and.record <- FALSE
-  vcf_landsat <- FALSE
-  ndvi_n_msavi <- FALSE
-  run.confuse.matrix <- FALSE
-}
-
-
-# Landsat Folder
-landsat.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/SMA/Landsat/Mpala/"
-
-# Location and prefixes of the 2014 and 1987 imagery
-image_prefix <- c("LC81680602014034LGN00", "LT51680601987056XXX01")
-image_folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/data/Landsat"
-
-
-
-# Working directory and where outputs are saved 
-working.dir <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/SMA/Rasters"
-google.image.folder <- "test_images_20170102"  # Downloaded Google images store here
-
-# Landsat VCF file path
-vcf <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/Landsat_VCF/p168r060_TC_2015.tif"
+SMA.check.mode <- TRUE
 
 # Folder with SMA results
-SMA.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/SMA/Results/20170108_TreeRemade_LaikipiaZeros/tif/"
-SMA.14 <- "20170108_TreeRemade_1billionConstraint_Laikipia_Zeros_SMA.tif"
+SMA.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/MESMA/Viper/20170227_TestRun/"
+SMA.14 <- "Laikipia_mesma_5%_105%_2pt5%_20170227"
 SMA.87 <- "87_Laik_20161203.tif"
+is.hdr <- TRUE
 
 
 # Set the band order for cover types in the Laikipia SMA
@@ -83,9 +45,48 @@ tr.bandnum.14 <- 1 #           1          1         2
 so.bandnum.14 <- 2 #           2          2         3 
 gr.bandnum.14 <- 3 #           3          3         1
 
-# Folder with shape file of ground truth area
-shape.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/ParkData/Mpala/Boundary"
+######################################  GENERAL VARIABLES  ###################################################
 
+# Define variables
+sample.size <- 500 # how many points should go into the ground truth? 
+get.Google.image <- FALSE  # Should the Google image be downloaded? (Set to FALSE if they're already downloaded)
+classify.water <- FALSE  # Should water be included as a condidate class?
+classify.google.and.record <- FALSE # should the Google images be classified and the cover recorded? 
+ndvi_n_msavi <- FALSE # calc NDVI and MSAVI2?
+vcf_landsat <- FALSE  # load the 2015 VCF?
+plot.9by9 <- FALSE  # Should an image with the 9x9 cells be created for each rep?
+save.confusion.matrix <- FALSE  # Save the confusion matrix?
+save.transition.matrix <- FALSE  # Save the transition matrix?
+run.confuse.matrix <- FALSE
+run.transition.matrix <- FALSE
+
+# Turn off the unnecessary parts of the code if just checking SMA
+if(SMA.check.mode == TRUE){
+  get.Google.image <- FALSE
+  classify.google.and.record <- FALSE
+  vcf_landsat <- FALSE
+  ndvi_n_msavi <- FALSE
+  run.confuse.matrix <- FALSE
+  run.transition.matrix <- FALSE
+}
+
+###############################  DIRECTORIES  ##############################################################
+# Landsat Folder
+landsat.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/SMA/Landsat/Mpala/"
+
+# Location and prefixes of the 2014 and 1987 imagery
+image_prefix <- c("LC81680602014034LGN00", "LT51680601987056XXX01")
+image_folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/data/Landsat"
+
+# Working directory and where outputs are saved 
+working.dir <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/SMA/Rasters"
+google.image.folder <- "test_images_20170102"  # Downloaded Google images store here
+
+# Landsat VCF file path
+vcf <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/Landsat_VCF/p168r060_TC_2015.tif"
+
+# Folder with shape files of ground truth area
+shape.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/ParkData/Mpala/Boundary"
 
 
 
@@ -135,9 +136,9 @@ if(SMA.check.mode == FALSE){
   # times if using more polygons in the future.
   
   # Clip out the raster and set the values to 1
-  plot(TREE, axes=F,box = F)
+  plot(mpala_cfmask, axes=F,box = F)
   plot(ground.truth.frame, axes=F,box = F, add = TRUE)
-  sample.raster <- mask(TREE, ground.truth.frame) 
+  sample.raster <- mask(mpala_cfmask, ground.truth.frame) 
   sample.raster[!is.na(sample.raster)] <- 1
   plot(sample.raster, axes=F,box = F)
   
@@ -222,11 +223,10 @@ if(classify.google.and.record){
 master.df <- read.csv(master.df.csv.name)
 
 # Run the giant function to add SMA
-master.df <- addSMA(SMAfolder = SMA.folder, tiffname = SMA.14, treeband = tr.bandnum.14, grband = gr.bandnum.14,
+sma.dat <- addSMA(SMAfolder = SMA.folder, tiffname = SMA.14, treeband = tr.bandnum.14, grband = gr.bandnum.14,
                        soilband = so.bandnum.14, parkboundary = mpala.boundary.simple, groundtruthboundary = ground.truth.frame, 
                        df = master.df, isHDR = is.hdr)
-
-
+master.df <- sma.dat[[1]]
 
 ######## NDVI and MSAVI2  #######################################################################
 if(ndvi_n_msavi){
@@ -282,214 +282,41 @@ if(run.confuse.matrix == TRUE){
 # Change the margins back to the default
 par(mar=c(5.1,4.1,4.1,2.1))
     
-# TREES
-# Calculate Stats
-##   RMSE
-tree.rmse <- sqrt( mean( (master.df$SMA.tree- master.df$nine.tree)^2 , na.rm = TRUE ) )
-##   R-squared
-y.mean <- mean(master.df$SMA.tree)
-y.line <- master.df$nine.tree
-y <- master.df$SMA.tree
-SE.y.mean <- sum((y - y.mean)^2) # what is the standard error from the mean of y? (SMA tree cover)
-SE.y.line <- sum((y - y.line)^2) # what is the standard error from the 1:1 line? (Google tree cover)
-tree.r.sq <- 1 - SE.y.line/SE.y.mean # NOTE 1 (see bottom) 
-correl <- cor(master.df$nine.tree, master.df$SMA.tree)
-covar <- cov(master.df$nine.tree, master.df$SMA.tree)
-# Plot
-plot(master.df$nine.tree*100, master.df$SMA.tree*100, 
-     main = paste0("Percent Tree Cover: Observed (9-cell) vs. SMA \nRMSE = ", round(tree.rmse, 2)*100, "%  R-squared = ", round(tree.r.sq, 2), " Cor = ", round(correl, 2)), 
-     xlab = "Observed % Tree Cover", ylab = "Predicted % Tree Cover", xlim = c(0,100), ylim = c(0,100))
-abline(0,1) # Add the 1:1 line
+# Trees
+# Function in src_masterfunctions.R
+plot1to1(x = master.df$nine.tree, y = master.df$SMA.tree, xlab = "Observed % Tree Cover", ylab = "Predicted % Tree Cover", 
+         main = "Percent Tree Cover: Observed (9-cell) vs. SMA" )
 
+# Grass
+plot1to1(x = master.df$p.grass, y = master.df$SMA.grass, xlab = "Observed % Grass Cover", ylab = "Predicted % Grass Cover", 
+         main = "Percent Grass Cover: Observed (9-cell) vs. SMA")
 
-# GRASS
-# Calculate Stats
-## RMSE
-grass.rmse <- sqrt( mean( (master.df$SMA.grass- master.df$nine.grass)^2 , na.rm = TRUE ) )
-## R-squared
-y.mean <- mean(master.df$SMA.grass)
-y.line <- master.df$nine.grass
-y <- master.df$SMA.grass
-SE.y.mean <- sum((y - y.mean)^2) # what is the standard error from the mean of y? (SMA grass cover)
-SE.y.line <- sum((y - y.line)^2) # what is the standard error from the 1:1 line? (Google grass cover)
-grass.r.sq <- 1 - SE.y.line/SE.y.mean
-correl <- cor(master.df$nine.grass, master.df$SMA.grass)
-covar <- cov(master.df$nine.grass, master.df$SMA.grass)
-# Plot
-plot(master.df$nine.grass*100, master.df$SMA.grass*100, main = paste0("Percent Grass Cover: Observed vs. Predicted \nRMSE = ", round(grass.rmse, 2)*100, "%  R-squared = ", round(grass.r.sq, 2), " Cor = ", round(correl, 2)), xlab = "Observed % Grass Cover", ylab = "Predicted % Grass Cover", xlim = c(0,100), ylim = c(0,100))
-abline(0,1) # Add the 1:1 line
-
-
-# SOIL
-# Calculate Stats
-## RMSE
-soil.rmse <- sqrt( mean( (master.df$SMA.soil- master.df$nine.soil)^2 , na.rm = TRUE ) )
-## R-squared
-y.mean <- mean(master.df$SMA.soil)
-y.line <- master.df$nine.soil
-y <- master.df$SMA.soil
-SE.y.mean <- sum((y - y.mean)^2) # what is the standard error from the mean of y? (SMA soil cover)
-SE.y.line <- sum((y - y.line)^2) # what is the standard error from the 1:1 line? (Google soil cover)
-soil.r.sq <- 1 - SE.y.line/SE.y.mean
-correl <- cor(master.df$nine.soil, master.df$SMA.soil)
-covar <- cov(master.df$nine.soil, master.df$SMA.soil)
-# Plot
-plot(master.df$nine.soil*100, master.df$SMA.soil*100, main = paste0("Percent Soil Cover: Observed vs. Predicted \nRMSE = ", round(soil.rmse, 2)*100, "%  R-squared = ", round(soil.r.sq, 2), " Cor = ", round(correl, 2)), xlab = "Observed % Soil Cover", ylab = "Predicted % Soil Cover", xlim = c(0,100), ylim = c(0,100))
-abline(0,1) # Add the 1:1 line
-
-
+# Soil
+plot1to1(x = master.df$p.soil, y = master.df$SMA.soil, xlab = "Observed % Soil Cover", ylab = "Predicted % Soil Cover", 
+         main = "Percent Soil Cover: Observed (9-cell) vs. SMA")
 
 
 
 ####################  TRANSITION MATRIX  ################################################################
-
-# Calcs the dominant cover in these, too, because it goes through all the pixels
-
-# make the table
-t.mtx <- matrix(0, nrow = 3, ncol = 3)
-tran.mx <- as.data.frame(t.mtx)
-c.name <- c("Trees", "Grass", "Soil")
-colnames(tran.mx) <- c.name
-rownames(tran.mx) <- c.name
-# 
-# # Create the entire list of cell numbers that have values
-# # Get the cell numbers
-# all.cell.val <- na.omit(mpala[])
-# 
-# all.cell.numbers <- c()
-# for(i in all.cell.val){
-#   sing.cell.new <- Which(mpala == i, cells= TRUE)
-#   all.cell.numbers <- c(all.cell.numbers, sing.cell.new)
-# }
-
-
-
-# # Check whether there are NA's within Mpala at all cover levels by summing them and if anything is still 0, then it was NA at all
-# t87 <- TREE.87
-# g87 <- GRASS.87
-# s87 <- SOIL.87
-# t87[is.na(t87)] <- 0
-# g87[is.na(g87)] <- 0
-# s87[is.na(s87)] <- 0
-# # Checked out. Would want to do this for the 14 year too, but thought not necessary
-# sum87 <- t87 + g87 + s87
-# plot(sum87)
-
-
-# Stack to see if they are the same
-n.cov.stack <- stack(TREE.87, GRASS.87, SOIL.87)
-plotRGB(n.cov.stack, scale = 255)
-n.cover.stack <- stack(TREE, GRASS, SOIL, TREE.87, GRASS.87, SOIL.87, mpala)
-
-# Go to each cell in the two years and figure out dominant class
-# To start, set NA's to 0 so comparisons can be ran
-t87 <- TREE.87
-g87 <- GRASS.87
-s87 <- SOIL.87
-t14 <- TREE
-g14 <- GRASS
-s14 <- SOIL
-t87[is.na(t87)] <- 0
-g87[is.na(g87)] <- 0
-s87[is.na(s87)] <- 0
-t14[is.na(t14)] <- 0
-g14[is.na(g14)] <- 0
-s14[is.na(s14)] <- 0
-# n <- tran.sample[1]
-
-# Doing all the cells 
-for(n in 1:length(mpala)){
-
-  # Compute percentages and what the majority cover is
-  tree_87 <- t87[n]
-  grass_87 <- g87[n]
-  soil_87 <- s87[n]
-  tree_14 <- t14[n]
-  grass_14 <- g14[n]
-  soil_14 <- s14[n]
+if(run.transition.matrix){
+  #### THIS ISN'T fully ready to run. Need to create stacks of the recent and old cover (14 and 87) in TGS order.
+  ## Those will go into the function below
+  recent.stack <- stack(sma.dat[2:4])
+  old.stack <- stack() # this needs to be filled
   
-  # Define major cover types and skip to next loop if none is greater than the others (means they were all NA originally)
-  # Define majority cover for 1987 SMA
-  if(tree_87 > grass_87 & tree_87 > soil_87){
-    cov.87 <- "Trees"
-  } else if(grass_87 > tree_87 & grass_87 > soil_87){
-    cov.87 <- "Grass"
-  } else if(soil_87 > tree_87 & soil_87 > grass_87){
-    cov.87 <- "Soil"
-  } else{next}
-  
-  # Define major cover for 2014 SMA
-  if(tree_14 > grass_14 & tree_14 > soil_14){
-    cov.14 <- "Trees"
-  } else if(grass_14 > tree_14 & grass_14 > soil_14){
-    cov.14 <- "Grass"
-  } else if(soil_14 > tree_14 & soil_14 > grass_14){
-    cov.14 <- "Soil"
-  } else{next}
-  
-  
-  # Assign the table coordinates (row/column) for plugging into table
-  if(cov.87 == "Trees"){
-    coord.87 <- 1
-  } else if (cov.87 == "Grass"){
-    coord.87 <- 2
-  } else if (cov.87 == "Soil"){
-    coord.87 <- 3
-  }
-  
-  if(cov.14 == "Trees"){
-    coord.14 <- 1
-  } else if (cov.14 == "Grass"){
-    coord.14 <- 2
-  } else if (cov.14 == "Soil"){
-    coord.14 <- 3
-  }
-  
-  # Now go to the position in the table and add 1
-  tran.mx[coord.14, coord.87] <- tran.mx[coord.14, coord.87] + 1
+  # Function in src_masterfunctions.R
+  transition.matrix <- create.trans.mtx(recent.TGS.cover.stack = recent.stack, yearofrecent = "2014", 
+                                        old.cover.TGS.cover.stack = old.stack, yearofold = "1987",
+                                        save.transition.matrix = FALSE) # if TRUE, can set the name (tran.mtx.name)
 }
 
-if(save.transition.matrix){
-  write.csv(tran.mx, "transition_matrix.csv")
-}
 
 ###################################################################################################
-# CREATE CHANGE MAPS
-# Subtract the three maps to get the change
-
-# Tree cover change
-tree.delta <- t14/255 - t87/255
-tree.delta[tree.delta[] == 0] <- NA
-plot(tree.delta, main = "Tree cover change")
-
-# Grass cover change
-grass.delta <- g14/255 - g87/255
-grass.delta[grass.delta[] == 0] <- NA
-plot(grass.delta, main = "Grass cover change")
-
-# Soil cover change
-soil.delta <- s14/255 - s87/255
-soil.delta[soil.delta[] == 0] <- NA
-plot(soil.delta, main = "Soil cover change")
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-## NOTES ####################
-#  1. This is an inappropriate use of R-squared. We aren't trying to see how well GE tree cover predicts SMA tree cover. But it's a familiar metric, and I get that we want it to be close to 1, so I'm including it for now. In all, it would mean "How much of the variation in the SMA cover can be explained by the variation in the GE cover (the 1:1 line). That isn't the point of what I'm doing and that is why it's an inappropriate use. I'm not trying to understand how SMA tree cover can be explained by GE cover. I'm just tring to see how well they match, and for that reason, the RMSE is the better measure.  
 
 
 
