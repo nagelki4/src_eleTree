@@ -30,9 +30,10 @@ SMA.check.mode <- TRUE
 
 # Folder with SMA results
 SMA.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/MESMA/Viper/20170227_TestRun/"
-SMA.14 <- "Laikipia_mesma_5%_105%_2pt5%_20170227"
+SMA.14 <- "Laikipia_mesma_unconstrained_shadeNORM_20170227"
 SMA.87 <- "87_Laik_20161203.tif"
 is.hdr <- TRUE
+is.unconstrained <- TRUE
 
 
 # Set the band order for cover types in the Laikipia SMA
@@ -225,7 +226,7 @@ master.df <- read.csv(master.df.csv.name)
 # Run the giant function to add SMA
 sma.dat <- addSMA(SMAfolder = SMA.folder, tiffname = SMA.14, treeband = tr.bandnum.14, grband = gr.bandnum.14,
                        soilband = so.bandnum.14, parkboundary = mpala.boundary.simple, groundtruthboundary = ground.truth.frame, 
-                       df = master.df, isHDR = is.hdr)
+                       df = master.df, isHDR = is.hdr, is.unconstrained = is.unconstrained)
 master.df <- sma.dat[[1]]
 
 ######## NDVI and MSAVI2  #######################################################################
