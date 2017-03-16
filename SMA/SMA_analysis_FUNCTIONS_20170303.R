@@ -23,6 +23,10 @@ library(sp)
 # Source the functions
 source("X:/nagelki4/src_functions/src_masterfunctions.R")
 
+#################################  WORKSPACE  ##############################################################
+# Load the old workspace, if needed
+# load("X:/nagelki4/Projects/EleTree/src/R Workspaces/SMA_workspace.Rdata")
+
 #################################  SMA  ##################################################################
 
 ## MASTER SWITCH for SMA checking
@@ -30,7 +34,7 @@ SMA.check.mode <- TRUE
 
 # Folder with SMA results
 SMA.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/MESMA/Viper/20170227_TestRun/"
-SMA.14 <- "Laikipia_mesma_unconstrained_shadeNORM_20170227"
+SMA.14 <- "Laikipia_mesma_unconstrained_20170227"
 SMA.87 <- "87_Laik_20161203.tif"
 is.hdr <- TRUE
 is.unconstrained <- TRUE
@@ -287,15 +291,20 @@ par(mar=c(5.1,4.1,4.1,2.1))
 # Function in src_masterfunctions.R
 plot1to1(x = master.df$nine.tree, y = master.df$SMA.tree, xlab = "Observed % Tree Cover", ylab = "Predicted % Tree Cover", 
          main = "Percent Tree Cover: Observed (9-cell) vs. SMA" )
+plot1to1(x = master.df$nine.tree, y = master.df$raw.SMA.tree, xlab = "Observed % Tree Cover", ylab = "Raw Predicted % Tree Cover", 
+         main = "Percent Tree Cover: Observed (9-cell) vs. Raw SMA", ylim = c(-300, 300), add_one2one_line = TRUE)
 
 # Grass
-plot1to1(x = master.df$p.grass, y = master.df$SMA.grass, xlab = "Observed % Grass Cover", ylab = "Predicted % Grass Cover", 
+plot1to1(x = master.df$nine.grass, y = master.df$SMA.grass, xlab = "Observed % Grass Cover", ylab = "Predicted % Grass Cover", 
          main = "Percent Grass Cover: Observed (9-cell) vs. SMA")
+plot1to1(x = master.df$nine.grass, y = master.df$raw.SMA.grass, xlab = "Observed % Grass Cover", ylab = "Raw Predicted % Grass Cover", 
+         main = "Percent Grass Cover: Observed (9-cell) vs. Raw SMA", ylim = c(-300, 300), add_one2one_line = FALSE)
 
 # Soil
-plot1to1(x = master.df$p.soil, y = master.df$SMA.soil, xlab = "Observed % Soil Cover", ylab = "Predicted % Soil Cover", 
+plot1to1(x = master.df$nine.soil, y = master.df$SMA.soil, xlab = "Observed % Soil Cover", ylab = "Predicted % Soil Cover", 
          main = "Percent Soil Cover: Observed (9-cell) vs. SMA")
-
+plot1to1(x = master.df$nine.soil, y = master.df$raw.SMA.soil, xlab = "Observed % Soil Cover", ylab = "Raw Predicted % Soil Cover", 
+         main = "Percent Soil Cover: Observed (9-cell) vs. Raw SMA", ylim = c(-300, 300), add_one2one_line = FALSE)
 
 
 ####################  TRANSITION MATRIX  ################################################################
