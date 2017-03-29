@@ -33,11 +33,17 @@ source("X:/nagelki4/src_functions/src_masterfunctions.R")
 SMA.check.mode <- TRUE
 
 # Folder with SMA results
-SMA.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/MESMA/Viper/20170227_TestRun/"
-SMA.14 <- "Laikipia_mesma_unconstrained_20170227"
+SMA.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/MESMA/Viper/20170315_AdditionalRuns/hdr_results/"
+SMA.14 <- "Laikipia_mesma_unconstrained_10percent_20170315_DarkTree_TS"
 SMA.87 <- "87_Laik_20161203.tif"
+save.plot <- TRUE
+plot.save.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/MESMA/Viper/20170315_AdditionalRuns/images/"
+MESMA.version <- c("Laik_50_150_", "unconstrained_")
+secondary.version <- "DarkTree_TS"
+total.mesma.name <- paste0(MESMA.version[2], secondary.version)
 is.hdr <- TRUE
-is.unconstrained <- TRUE
+is.unconstrained <- T
+TS_Only <- TRUE
 
 
 # Set the band order for cover types in the Laikipia SMA
@@ -45,10 +51,21 @@ is.unconstrained <- TRUE
 tr.bandnum.87 <- 2 # KEY 1203  2  noncon  2   1120  
 so.bandnum.87 <- 1 #           1          1  
 gr.bandnum.87 <- 3 #           3          3
-# 2014
-tr.bandnum.14 <- 1 #           1          1         2
-so.bandnum.14 <- 2 #           2          2         3 
-gr.bandnum.14 <- 3 #           3          3         1
+
+
+if(TS_Only == TRUE){ # the code is being funny, so running grass as a duplicate of soil. Won't be plotted
+  # 2014
+  tr.bandnum.14 <- 1 #           1          1         2
+  gr.bandnum.14 <- 2
+  so.bandnum.14 <- 2 #           2          2         3
+  
+}else{
+  # 2014
+  tr.bandnum.14 <- 1 #           1          1         2
+  gr.bandnum.14 <- 2 #           2          2         3 
+  so.bandnum.14 <- 3 #           3          3         1
+}
+
 
 ######################################  GENERAL VARIABLES  ###################################################
 
@@ -102,7 +119,7 @@ setwd(working.dir)
 par(mar=c(1,1,2,1))
 
 
-if(SMA.check.mode == FALSE){
+if(SMA.check.mode == FALSE){ # if these aren't already in the environment, will need to run for SMA check
   #####################  SHAPEFILE & RASTERS & POINT GENERATION  ############################################
   
   ###### Read in Landsat and shapefiles
@@ -229,8 +246,9 @@ master.df <- read.csv(master.df.csv.name)
 
 # Run the giant function to add SMA
 sma.dat <- addSMA(SMAfolder = SMA.folder, tiffname = SMA.14, treeband = tr.bandnum.14, grband = gr.bandnum.14,
-                       soilband = so.bandnum.14, parkboundary = mpala.boundary.simple, groundtruthboundary = ground.truth.frame, 
-                       df = master.df, isHDR = is.hdr, is.unconstrained = is.unconstrained)
+                  soilband = so.bandnum.14, parkboundary = mpala.boundary.simple, groundtruthboundary = ground.truth.frame, 
+                  df = master.df, isHDR = is.hdr, is.unconstrained = is.unconstrained)
+
 master.df <- sma.dat[[1]]
 
 ######## NDVI and MSAVI2  #######################################################################
@@ -289,22 +307,22 @@ par(mar=c(5.1,4.1,4.1,2.1))
     
 # Trees
 # Function in src_masterfunctions.R
-plot1to1(x = master.df$nine.tree, y = master.df$SMA.tree, xlab = "Observed % Tree Cover", ylab = "Predicted % Tree Cover", 
-         main = "Percent Tree Cover: Observed (9-cell) vs. SMA" )
 plot1to1(x = master.df$nine.tree, y = master.df$raw.SMA.tree, xlab = "Observed % Tree Cover", ylab = "Raw Predicted % Tree Cover", 
-         main = "Percent Tree Cover: Observed (9-cell) vs. Raw SMA", ylim = c(-300, 300), add_one2one_line = TRUE)
+         main = "Percent Tree Cover: Observed (9-cell) vs. Raw SMA", ylim = c(-100, 200), add_one2one_line = TRUE, add.reg.line = TRUE,
+         save.plot.name = paste0(plot.save.folder, "Tree_SMAraw_", total.mesma.name, ".png"))
 
 # Grass
-plot1to1(x = master.df$nine.grass, y = master.df$SMA.grass, xlab = "Observed % Grass Cover", ylab = "Predicted % Grass Cover", 
-         main = "Percent Grass Cover: Observed (9-cell) vs. SMA")
-plot1to1(x = master.df$nine.grass, y = master.df$raw.SMA.grass, xlab = "Observed % Grass Cover", ylab = "Raw Predicted % Grass Cover", 
-         main = "Percent Grass Cover: Observed (9-cell) vs. Raw SMA", ylim = c(-300, 300), add_one2one_line = FALSE)
+if(TS_Only == FALSE){
+  plot1to1(x = master.df$nine.grass, y = master.df$raw.SMA.grass, xlab = "Observed % Grass Cover", ylab = "Raw Predicted % Grass Cover", 
+           main = "Percent Grass Cover: Observed (9-cell) vs. Raw SMA", ylim = c(-100, 200), add_one2one_line = TRUE, add.reg.line = TRUE,
+           save.plot.name = paste0(plot.save.folder, "Grass_SMAraw_", total.mesma.name, ".png"))
+}
+
 
 # Soil
-plot1to1(x = master.df$nine.soil, y = master.df$SMA.soil, xlab = "Observed % Soil Cover", ylab = "Predicted % Soil Cover", 
-         main = "Percent Soil Cover: Observed (9-cell) vs. SMA")
 plot1to1(x = master.df$nine.soil, y = master.df$raw.SMA.soil, xlab = "Observed % Soil Cover", ylab = "Raw Predicted % Soil Cover", 
-         main = "Percent Soil Cover: Observed (9-cell) vs. Raw SMA", ylim = c(-300, 300), add_one2one_line = FALSE)
+         main = "Percent Soil Cover: Observed (9-cell) vs. Raw SMA", ylim = c(-100, 200), add_one2one_line = TRUE, add.reg.line = TRUE,
+         save.plot.name = paste0(plot.save.folder, "Soil_SMAraw_", total.mesma.name, ".png"))
 
 
 ####################  TRANSITION MATRIX  ################################################################
