@@ -37,7 +37,7 @@ SMA.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree 
 SMA.14 <- "Laikipia_mesma_unconstrained_10percent_20170315_DarkTree_TS"
 SMA.87 <- "87_Laik_20161203.tif"
 save.plot <- TRUE
-plot.save.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/MESMA/Viper/20170315_AdditionalRuns/images/"
+plot.save.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/MESMA/Viper/20170315_AdditionalRuns/images/lm_addition/"
 MESMA.version <- c("Laik_50_150_", "unconstrained_")
 secondary.version <- "DarkTree_TS"
 total.mesma.name <- paste0(MESMA.version[2], secondary.version)
@@ -45,6 +45,41 @@ is.hdr <- TRUE
 is.unconstrained <- T
 TS_Only <- TRUE
 
+
+
+#######################  Section for automated plotting to eval the SMA hdr results  ######################
+
+# get list of hdr files
+hdr.list <- list.files(SMA.folder, pattern = ".hdr")
+hdr.list <- hdr.list[!grepl(pattern = "class", hdr.list)] # exclude the hdr files of the classifications 
+
+
+# Create a table to plug hdr.name, RMSE, slope, 1-slope, Adj r-sq, yint into
+mx <- matrix(0, nrow = length(hdr.list), ncol = 6)
+c.names <- c("hdr.name", "RMSE", "adj.r.sq", "slope", "1-slope", "y-int")
+colnames(mx) <- c.names
+hdr.eval.df <- as.data.frame(mx)
+
+
+
+for(h in 1:length(hdr.list)){
+  # Get file name
+  SMA.14 <- substr(h, 0, nchar(hdr.list[h])-4) # Take off the .hdr, which isn't needed
+
+  total.mesma.name <- gsub(pattern = "%", "prcnt", SMA.14) # remove any % signs
+  is.hdr <- TRUE # this is always true for this loop
+  
+  # Determine if unconstrained
+  if(grepl(pattern = "uncon", SMA.14)){
+    is.unconstrained <- TRUE
+  }else{is.unconstrained <- FALSE}
+  
+  # Determine if TS
+  if(grepl(pattern = "TS", SMA.14)){
+    TS_Only <- TRUE
+  }else{TS_Only <- FALSE}
+
+#####################################
 
 # Set the band order for cover types in the Laikipia SMA
 # 1987
@@ -309,20 +344,23 @@ par(mar=c(5.1,4.1,4.1,2.1))
 # Function in src_masterfunctions.R
 plot1to1(x = master.df$nine.tree, y = master.df$raw.SMA.tree, xlab = "Observed % Tree Cover", ylab = "Raw Predicted % Tree Cover", 
          main = "Percent Tree Cover: Observed (9-cell) vs. Raw SMA", ylim = c(-100, 200), add_one2one_line = TRUE, add.reg.line = TRUE,
-         save.plot.name = paste0(plot.save.folder, "Tree_SMAraw_", total.mesma.name, ".png"))
+         save.plot = save.plot, save.plot.name = paste0(plot.save.folder, "Tree_SMAraw_", total.mesma.name, ".png"))
 
 # Grass
 if(TS_Only == FALSE){
   plot1to1(x = master.df$nine.grass, y = master.df$raw.SMA.grass, xlab = "Observed % Grass Cover", ylab = "Raw Predicted % Grass Cover", 
            main = "Percent Grass Cover: Observed (9-cell) vs. Raw SMA", ylim = c(-100, 200), add_one2one_line = TRUE, add.reg.line = TRUE,
-           save.plot.name = paste0(plot.save.folder, "Grass_SMAraw_", total.mesma.name, ".png"))
+           save.plot = save.plot, save.plot.name = paste0(plot.save.folder, "Grass_SMAraw_", total.mesma.name, ".png"))
 }
 
 
 # Soil
 plot1to1(x = master.df$nine.soil, y = master.df$raw.SMA.soil, xlab = "Observed % Soil Cover", ylab = "Raw Predicted % Soil Cover", 
          main = "Percent Soil Cover: Observed (9-cell) vs. Raw SMA", ylim = c(-100, 200), add_one2one_line = TRUE, add.reg.line = TRUE,
-         save.plot.name = paste0(plot.save.folder, "Soil_SMAraw_", total.mesma.name, ".png"))
+         save.plot = save.plot, save.plot.name = paste0(plot.save.folder, "Soil_SMAraw_", total.mesma.name, ".png"))
+
+####################  PLUG IN RMSE etc  #################################################################
+
 
 
 ####################  TRANSITION MATRIX  ################################################################
@@ -340,7 +378,7 @@ if(run.transition.matrix){
 
 
 ###################################################################################################
-
+} # This is the end of the hdr plotting loop
 
 
 
