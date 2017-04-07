@@ -36,11 +36,11 @@ skip.those.already.plotted <- TRUE # When true, this will skip HDR files that ha
 
 
 # Folder with SMA results (Auto plot: just set experiment.folder)
-experiment.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/MESMA/Viper/20170330_3ROI/"
-SMA.folder <- paste0(experiment.folder, "hdr_results/")
-SMA.14 <- "Laikipia_mesma_unconstrained_10percent_20170315_HML_all"
+experiment.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/analysis/mesma/"
+SMA.folder <- paste0(experiment.folder, "mpala/")
+SMA.14 <- "mpala_mesma_50_150_10_20170406_p44_45_TS_ShadeN"
 SMA.87 <- "87_Laik_20161203.tif"
-save.plot <- FALSE
+save.plot <- TRUE
 plot.save.folder <- paste0(experiment.folder, "images/")
 MESMA.version <- c("Laik_50_150_", "unconstrained_")
 secondary.version <- "HML_all"
