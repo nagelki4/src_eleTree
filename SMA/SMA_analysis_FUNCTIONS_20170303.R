@@ -21,26 +21,26 @@ library(sp)
 
 #################################  Functions  ##################################################################
 # Source the functions
-source("X:/nagelki4/src_functions/src_masterfunctions.R")
+source("F:/Dropbox/Permanent/Grad School/src_functions/src_masterfunctions.R")
 
 #################################  WORKSPACE  ##############################################################
 # Load the old workspace, if needed
-# load("X:/nagelki4/Projects/EleTree/src/R Workspaces/SMA_workspace.Rdata")
+# load("F:/Dropbox/Permanent/Grad School/Projects/EleTree/src/R Workspaces/SMA_workspace.Rdata")
 
 #################################  SMA  ##################################################################
 
 ## MASTER SWITCH for SMA checking
-SMA.check.mode <- TRUE
+SMA.check.mode <- FALSE
 # SKIP?
 skip.those.already.plotted <- TRUE # When true, this will skip HDR files that have already been plotted (speeds things up)
 
 
 # Folder with SMA results (Auto plot: just set experiment.folder)
-experiment.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/analysis/mesma/"
-SMA.folder <- paste0(experiment.folder, "mpala/")
-SMA.14 <- "mpala_mesma_50_150_10_20170406_p44_45_TS_ShadeN"
+experiment.folder <- "F:/Dropbox/Permanent/Grad School/Projects/EleTree/analysis/MESMA/"
+SMA.folder <- paste0(experiment.folder, "mpala/hdr_results/")
+SMA.14 <- "Tree_mpala_mesma_unconstrained_10_2013271_HML_tree_3ROI_shadeNorm_clip_unshifted.tif"
 SMA.87 <- "87_Laik_20161203.tif"
-save.plot <- TRUE
+save.plot <- FALSE
 plot.save.folder <- paste0(experiment.folder, "images/")
 MESMA.version <- c("Laik_50_150_", "unconstrained_")
 secondary.version <- "HML_all"
@@ -143,21 +143,21 @@ for(h in 1:length(hdr.list)){
   
   ###############################  DIRECTORIES  ##############################################################
   # Landsat Folder
-  landsat.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/SMA/Landsat/Mpala/"
+  landsat.folder <- "F:/Dropbox/Permanent/Grad School/Projects/EleTree/data/Landsat/Mpala/unzipped/"
   
   # Location and prefixes of the 2014 and 1987 imagery
   image_prefix <- c("LC81680602014034LGN00", "LT51680601987056XXX01")
   image_folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/data/Landsat"
   
   # Working directory and where outputs are saved 
-  working.dir <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/SMA/Rasters"
+  working.dir <- "F:/Dropbox/Permanent/Grad School/Projects/EleTree/analysis/MESMA/mpala/hdr_results"
   google.image.folder <- "test_images_20170102"  # Downloaded Google images store here
   
   # Landsat VCF file path
   vcf <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/Landsat_VCF/p168r060_TC_2015.tif"
   
   # Folder with shape files of ground truth area
-  shape.folder <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/ParkData/Mpala/Boundary"
+  shape.folder <- "F:/Dropbox/Permanent/Grad School/Projects/EleTree/data/ParkData/Mpala/Boundary"
   
   
   
@@ -294,9 +294,9 @@ for(h in 1:length(hdr.list)){
   master.df <- read.csv(master.df.csv.name)
   
   # Run the giant function to add SMA
-  sma.dat <- addSMA(SMAfolder = SMA.folder, tiffname = SMA.14, treeband = tr.bandnum.14, grband = gr.bandnum.14,
-                    soilband = so.bandnum.14, parkboundary = mpala.boundary.simple, groundtruthboundary = ground.truth.frame, 
-                    df = master.df, isHDR = is.hdr, is.unconstrained = is.unconstrained)
+  sma.dat <- addSMA(SMAfolder = SMA.folder, tiffname = SMA.14, treeband = tr.bandnum.14, grband = tr.bandnum.14,
+                    soilband = tr.bandnum.14, parkboundary = mpala.boundary.simple, groundtruthboundary = ground.truth.frame, 
+                    df = master.df, isHDR = FALSE, is.unconstrained = is.unconstrained)
   
   master.df <- sma.dat[[1]]
   
@@ -347,7 +347,8 @@ for(h in 1:length(hdr.list)){
     confusion.mtx <- confusionMatrix(df = master.df) # can change settings to save the mtx and whether water is included
   }
   
-  
+  plot(master.df$p.tree, master.df$SMA.tree)
+  abline(0,1)
   ####################  CREATE 1:1 PLOT  #############################################################
   
   # Plot the 3 plots

@@ -6,13 +6,7 @@
 
 library(raster)
 
-# Where are the files?
-file.loc <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/data/Landsat/mpala"
-setwd(file.loc)
 
-# Folder with shape files of ground truth area
-shape.folder <- "X:/nagelki4/Projects/EleTree/data/GIS/Boundaries"
-save.loc <- "C:/Users/nagelki-4/Desktop/nagelki4/Grad School/Projects/EleTree Analysis/analysis/mesma/image_stacks/mpala"
 
 
 
@@ -22,9 +16,10 @@ file.list <- list.files(file.loc, pattern = "band")
 landsat.names <- substr(file.list, 1, 21)
 ls.unique <- unique(landsat.names)
 
-# Read in the Laikipia boundary and set to same crs as the landsat data
-site.boundary <- readOGR(shape.folder, "Laikipia_Landsat_Clip")
-site.boundary <- spTransform(site.boundary, crs("+proj=utm +zone=37 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0")) # I got this from a Landsat raster
+# Get the boundary name
+boundary.name <- 
+
+
 
 
 
