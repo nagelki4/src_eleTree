@@ -3,8 +3,9 @@
 # all the MESMA hdr files in the final analysis to:
 #   1. Clip the park out
 #   2. Plot each year
-#   3. Create graph with avg tree cover in park per year
+#   3. Create graph with avg tree cover in park per year and annual precip
 #   4. Do tree cover change assessment
+# 
 
 
 

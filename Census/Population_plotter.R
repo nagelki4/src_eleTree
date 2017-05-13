@@ -1,6 +1,9 @@
+####  DESCRIPTION
+# This code goes into the elephant population csv and plots the elephant population and densities for each park. 
+
 
 # Set the working directory
-setwd("X:/nagelki4/Projects/EleTree/Census Numbers")
+setwd("X:/nagelki4/Projects/EleTree/Census Numbers") # location with the census csv
 
 # Look at files
 list.files()

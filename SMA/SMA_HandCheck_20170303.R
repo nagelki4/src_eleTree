@@ -1,5 +1,9 @@
 ######  CHECKING GROUND TRUTH BY HAND  #####################################################
 
+#  This code downloads the Google Imagery and saves it. Then that imagery is available to classify by hand.
+#  The threshold values are manually saved in a table by the person classifying. 
+
+
 #############################  LOAD LIBRARIES  ######################################################################
 library(raster)
 library(rgdal)
@@ -15,7 +19,7 @@ library(sp)
 
 #################################  Functions  ##################################################################
 # Source the functions
-source("C:/Users/nagelki-4/Dropbox/Permanent/Grad School/Code/R/Function Scripts/SMA_Eval_Functions.R")
+source("F:/Dropbox/Permanent/Grad School/src_functions/src_masterfunctions.R")
 
 #################################  Workspace  ##################################################################
 # Load the old workspace
