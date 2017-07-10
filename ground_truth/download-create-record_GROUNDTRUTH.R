@@ -51,17 +51,17 @@ source(paste0(function.folder, "src_masterfunctions.R")) # this reads the functi
 
 #################################  Variables  ##################################################################
 # These variables, especially the first half of the set, will need to be changed as you move to new sample areas and/or parks.
-park.section <- 3  # this is the section of the boundary file that you want your ground truth points to be created within
-park <- "Mpala"  # This is the folder name inside the working directory with all the files for the park
-park.boundary <- "MpalaImageDelineated" # this is the boundary file that also has the boundaries of the google imagery
-landsat.image <- "LC81680602014034LGN00_cfmask.tif"  # this needs to be a landsat image that covers the entire sample area. It serves as a template for point creation
+park.section <- 1  # this is the section of the boundary file that you want your ground truth points to be created within
+park <- "Kruger"  # This is the folder name inside the working directory with all the files for the park
+park.boundary <- "Kruger_Boundary" # this is the simple outline of the park
+image.boundaries <- "Kruger_Boundary_GE_Buffers_excluded" # this is the boundary file that also has the boundaries of the google imagery
+landsat.image <- "Kruger_backdrop_mosaic.tif"  # this needs to be a landsat image that covers the entire sample area. It serves as a template for point creation
 working.dir <- "F:/Dropbox/Permanent/Grad School/Projects/EleTree/data/ParkData/" # set this to the folder path that has all the park folders in it. Make sure it has "/" at the end.
-truth.point.num <- 500  # Keep this at 500 for now. It's the number of points the code will eventually classify.
-hand.truth.num <- 50  # Keep at 50 for now. It's the number of points to classify by hand. It can't go higher than truth.point.num
+truth.num <- 1000  # the total number of points to take from the park.
+hand.truth.num <- 200  # the number of points to classify by hand. It can't go higher than truth.num
 hand.truth.image.folder <- "manual_ground_truth_images" # this should stay the same. It is the folder within the park folder that will hold the hand-classified images
 ground.truth.image.folder <- "automated_ground_truth_images"  # this should also stay the same. Like above, except all sample images are saved here, not just the hand-classified
 pixel.size.meters <- 30  # this shouldn't change. It is the length of one side of the area you want to classify. Typically will be set to landsat imagery resolution 
-
 
 
 #################################  Control Panel  ##############################################################
@@ -75,6 +75,7 @@ save.rgb.pixel <- FALSE  # Should the cropped 30x30 m RGB of the Google imagery 
 save.class.pixel <- FALSE  # Should the classified image be saved to the image folder? Only save images once you have the classification you want. (ref: "Combine Covers")
 record.class.values <- FALSE # Should the classified veg cover values be plugged into the dataframe? (ref: "Record Values" section)
 save.final.class.df <- FALSE # Should the dataframe be saved? This should be done only once all the different images have been classified. (ref: "Save DF")
+using.area.dependent.point.generation <- TRUE # this enables the code to automatically determine how many points should be hand classified from each image/sample area
 
 # Classifier note: From here all the way down until the "START OF MANUAL CLASSIFICATION" section can be ran without any input.
 # Just make sure "get.Google.image" and "save.rgb.pixel" are set to false if the imagery is already downloaded. Otherwise it 
@@ -95,7 +96,7 @@ colnames(mx) <- c.names # above, pxl.num is the pixel number within the sample a
 hand.truth.df <- as.data.frame(mx)
 
 # DF for automated classification
-mx <- matrix(0, nrow = truth.point.num, ncol = 7)
+mx <- matrix(0, nrow = truth.num, ncol = 7)
 c.names <- c("Count", "park.pxl.num", "pxl.num", "hand.tree", "hand.grass", "hand.soil", "maj.truth")
 colnames(mx) <- c.names # above, pxl.num is the pixel number within the sample area, park.pxl.num is from the entire park
 auto.truth.df <- as.data.frame(mx)
@@ -108,24 +109,44 @@ auto.truth.df <- as.data.frame(mx)
 landsat.image <- raster(landsat.image)
 
 # Shapefiles
-google.boundary <- readOGR("./gis", park.boundary)
+google.boundary <- readOGR("./gis", image.boundaries)
+park.border <- readOGR("../Boundary", park.boundary)
 # Convert Mpala shapefile to lat long, which everything else is in
 google.boundary <- spTransform(google.boundary, crs(landsat.image))
-plot(google.boundary, add = TRUE)
-# Select the section of the park to develop rule set for
-ground.truth.frame <- as.SpatialPolygons.PolygonsList(google.boundary@polygons[park.section], crs(landsat.image))
-plot(ground.truth.frame)
+park.border <- spTransform(park.border, crs(landsat.image))
+plot(google.boundary)
 
+
+# Get the total area of the images in the park
+tot.img.area <- sum(google.boundary$Shape_Area)
+# Calculate the point density given the area 
+hand.point.density <- hand.truth.num / tot.img.area
+tot.point.density <- truth.num / tot.img.area
+# Create a new column with number of points for both hand checking and the total drawn from the park
+google.boundary$hand_pts <- round(google.boundary$Shape_Area * hand.point.density)
+google.boundary$tot_pts <- round(google.boundary$Shape_Area * tot.point.density)
+hand.missing.pts <- hand.truth.num - sum(google.boundary$hand_pts) # this is to figure out how many we'll need to add yet
+tot.missing.pts <- truth.num - sum(google.boundary$tot_pts) # this is to figure out how many we'll need to add yet
+# Find largest image index number and add the remaining points to that image
+max.img <- which(google.boundary$Shape_Area == max(google.boundary$Shape_Area))
+google.boundary$hand_pts[max.img] <- google.boundary$hand_pts[max.img] + hand.missing.pts 
+google.boundary$tot_pts[max.img] <- google.boundary$tot_pts[max.img] + tot.missing.pts
+sum(google.boundary$hand_pts)
+sum(google.boundary$tot_pts)
 
 # Create background Park image
-blank.park <- clipTIF(tifname = landsat.image, clipboundary = google.boundary)
+blank.park <- clipTIF(tifname = landsat.image, clipboundary = park.border)
 blank.park[!is.na(blank.park)] <- 0
-# plot(blank.park, col = "lightgray")
+plot(blank.park, col = "lightgray")
 
 
 
 #############################  Point Generation  ###############################################################
-# Crop the area that will be used for random point generation. 
+
+# Select the section of the park to extract points from
+ground.truth.frame <- as.SpatialPolygons.PolygonsList(google.boundary@polygons[park.section], crs(landsat.image))
+plot(ground.truth.frame)
+
 
 # Clip out the raster and set the values to 1
 sample.area.raster <- clipTIF(tifname = blank.park, clipboundary =  ground.truth.frame) 
@@ -142,9 +163,15 @@ cell.vals <- length(na.omit(sample.area.raster[])) # this used to be na.omit(mpa
 sample.area.raster[!is.na(sample.area.raster)] <- 1:cell.vals
 plot(sample.area.raster, axes=F,box = F)
 
+#### Redefine what truth.num and hand.truth.num are at this point if these numbers are being created based on the image area
+if(using.area.dependent.point.generation == TRUE){
+  truth.num <- google.boundary$tot_pts[park.section]
+  hand.truth.num <- google.boundary$hand_pts[park.section]
+}
+
 # Randomly select cells from the raster (the cells are represented as a list of numbers at this point)
 set.seed(1) # set this for now. Can change later
-sample.cells <- sample(1:cell.vals, truth.point.num)
+sample.cells <- sample(1:cell.vals, truth.num)
 
 ####  Plot the Points
 # First, get the cell numbers
@@ -213,9 +240,9 @@ rownames(cellnums.df) <- 1:nrow(cellnums.df) # order the row names so they aren'
 #############################  Create Image Name Lists  ###########################################################
 # Create lists of the files to crop (auto and hand)
 auto.images <- c()
-for(t in 1:truth.point.num){
+for(t in 1:truth.num){
   # Create the image name for that pixel
-  image.name <- paste0("./", ground.truth.image.folder, "/pixel_park", cellnums.df$park_cell[t], 
+  image.name <- paste0("./section_", park.section, "/", ground.truth.image.folder, "/pixel_park", cellnums.df$park_cell[t], 
                        "_sample", cellnums.df$sample_cell[t], "_", park, ".png")
   auto.images <- c(auto.images, image.name)
 }
@@ -223,7 +250,7 @@ for(t in 1:truth.point.num){
 # Create hand image list
 hand.images <- c()
 for(t in 1:hand.truth.num){
-  image.name.new <- paste0("./", hand.truth.image.folder, "/pixel_park", cellnums.df$park_cell[t], 
+  image.name.new <- paste0("./section_", park.section, "/", hand.truth.image.folder, "/pixel_park", cellnums.df$park_cell[t], 
                            "_sample", cellnums.df$sample_cell[t], "_", park, ".png")
   hand.images <- c(hand.images, image.name.new)
 }
@@ -236,12 +263,12 @@ for(x in 1:length(hand.images)){
 }
 
 # Create the google image folders if not already done
-if(file.exists(paste0("./", ground.truth.image.folder)) == FALSE){
-  dir.create(paste0("./", ground.truth.image.folder))
+if(file.exists(paste0("./section_", park.section, "/", ground.truth.image.folder)) == FALSE){
+  dir.create(paste0("./section_", park.section, "/", ground.truth.image.folder))
 }
 
-if(file.exists(paste0("./", hand.truth.image.folder)) == FALSE){
-  dir.create(paste0("./", hand.truth.image.folder))
+if(file.exists(paste0("./section_", park.section, "/", hand.truth.image.folder)) == FALSE){
+  dir.create(paste0("./section_", park.section, "/", hand.truth.image.folder))
 }
 
 
@@ -251,7 +278,7 @@ if(file.exists(paste0("./", hand.truth.image.folder)) == FALSE){
 if(get.Google.image){
   
   # Get the Google image for each pixel
-  for(t in 1:truth.point.num){
+  for(t in 1:truth.num){
     # Create the image name for that pixel
     image.name <- auto.images[t] # this looks risky, but the naming above follows this same order
     # GET THE IMAGE FROM GOOGLE!! 
@@ -260,7 +287,7 @@ if(get.Google.image){
                         destfilename = image.name, typeofmap = "satellite", zoomlevel = 19)
   }
   
-  # Move the first 50 images to the hand classifying folder (yes, they are now in random order (a good thing: it's the original order from random number generator))
+  # Move the first n (hand.truth.num) images to the hand classifying folder (they are now in random order (a good thing: it's the original order from random number generator))
   for(t in 1:hand.truth.num){
     image.name <- auto.images[t]
     image.name.new <- hand.images[t]
@@ -495,7 +522,7 @@ if(record.class.values){
 
 #############################  Save DF  ##########################################################################
 if(save.final.class.df){
-  write.csv(hand.truth.df, paste0("groundtruth_doneByHand_", YMD(), ".csv"))
+  write.csv(hand.truth.df, paste0("./section_", park.section, "/groundtruth_doneByHand_", YMD(), ".csv"))
 }
 
 
