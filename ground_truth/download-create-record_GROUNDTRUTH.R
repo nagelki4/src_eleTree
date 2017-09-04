@@ -338,8 +338,11 @@ for(t in 1:length(google.boundary)){
         image.name <- auto.images[t] # this looks risky, but the naming above follows this same order
         # GET THE IMAGE FROM GOOGLE!! 
         # Function in src_masterfunctions.R
-        j <- getGoogleimage(rastername = sample.area.raster, ras.pixel.num = cellnums.df$sample_cell[t], 
-                            destfilename = image.name, typeofmap = "satellite", zoomlevel = 19)
+        if(!file.exists(image.name)){ # test whether images was already downloaded
+          j <- getGoogleimage(rastername = sample.area.raster, ras.pixel.num = cellnums.df$sample_cell[t], 
+                              destfilename = image.name, typeofmap = "satellite", zoomlevel = 19)
+        }
+        gc() # sometimes this loop freezes due to low memory. This prevents that
       }
       
       # Move the first n (hand.truth.num) images to the hand classifying folder (they are now in random order (a good thing: it's the original order from random number generator))

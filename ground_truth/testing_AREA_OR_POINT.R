@@ -8,8 +8,11 @@ library(sp)
 
 GEE <- raster("Kruger_backdrop_GEE.tif")
 EE <- raster("Kruger_backdrop_USGSEarthExplorer_mosaic.tif")
-delta <- raster("Kruger_change.tif")
-
+GEE_coded <- raster("Kruger_backdrop_mosaic.tif")
+mpala <- raster("mpala_backdrop_mosaic.tif")
+plot(mpala)
+mpala[] <- 1
+plot(mpala)
 
 GEE_sub <- rasterFromCells(GEE, c(1:8), values=TRUE)
 EE_sub <- rasterFromCells(EE, c(1:8), values = TRUE)
@@ -19,10 +22,11 @@ plot(EE_sub)
 
 plot(d_sub_shift, add = TRUE)
 
+# SHould be true 
+extent(d_sub_shift) == extent(EE_sub)
 
-d_sub@extent <- d_sub@extent+15
-extent(d_sub_shift)
-extent(EE_sub)
-extent(d_sub)
-
-
+# Export a shifted Kruger GEE image
+GEE_shift <- shift(GEE, 15, 15)
+mpala_GEE_shift <- shift(mpala, 15, 15)
+writeRaster(GEE_coded, "Kruger_backdrop_mosaic_shifted.tif")
+writeRaster(mpala_GEE_shift, "mpala_GEE_shift.tif", overwrite = TRUE)
